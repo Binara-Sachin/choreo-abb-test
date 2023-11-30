@@ -1,6 +1,7 @@
 import ballerina/http;
 import ballerinax/redis;
 import ballerina/uuid;
+import ballerina/io;
 
 configurable string REDIS_CONTAINER_HOST = ?;
 configurable string REDIS_PASSWORD = ?;
@@ -107,6 +108,7 @@ isolated function redisHealthCheck() returns HealthStatus {
     string|error stringSetresult = conn->set(REDIS_MONITORING_KEY, monitoringValue);
 
     if (stringSetresult is error) {
+        io:println("Error while setting a value to Redis: " + stringSetresult.message());
         healthStatus = {
             name: REDIS_NAME,
             status: FAIL,
