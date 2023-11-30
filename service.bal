@@ -2,12 +2,12 @@ import ballerina/http;
 import ballerinax/redis;
 import ballerina/uuid;
 
-const string host = "<redis_container_host>";
-const string password = "<redis_password>";
+configurable string REDIS_CONTAINER_HOST = ?;
+configurable string REDIS_PASSWORD = ?;
 
 redis:ConnectionConfig redisConfig = {
-    host: host,
-    password: password,
+    host: REDIS_CONTAINER_HOST,
+    password: REDIS_PASSWORD,
     options: {
         connectionPooling: true,
         isClusterConnection: false,
