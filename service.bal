@@ -52,7 +52,7 @@ service / on new http:Listener(9090) {
         return "Hello, " + name;
     }
 
-    resource isolated function get healthCheck(http:Caller caller) returns error? {
+    resource function get healthCheck(http:Caller caller) returns error? {
 
         HealthStatus api01Status = api01HealthCheck();
         HealthStatus redisStatus = redisHealthCheck();
@@ -88,7 +88,7 @@ service / on new http:Listener(9090) {
     }
 }
 
-isolated function api01HealthCheck() returns HealthStatus {
+function api01HealthCheck() returns HealthStatus {
     HealthStatus api01Status = {
         name: "API 01",
         status: PASS
@@ -99,7 +99,7 @@ isolated function api01HealthCheck() returns HealthStatus {
     return api01Status;
 }
 
-isolated function redisHealthCheck() returns HealthStatus {
+function redisHealthCheck() returns HealthStatus {
 
     HealthStatus healthStatus;
 
