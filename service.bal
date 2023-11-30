@@ -13,7 +13,7 @@ redis:ConnectionConfig redisConfig = {
         connectionPooling: true,
         isClusterConnection: false,
         ssl: false,
-        startTls: false,
+        startTls: true,
         verifyPeer: false,
         connectionTimeout: 500
     }
