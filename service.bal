@@ -12,8 +12,8 @@ redis:ConnectionConfig redisConfig = {
     options: {
         connectionPooling: true,
         isClusterConnection: false,
-        ssl: true,
-        startTls: true,
+        ssl: false,
+        startTls: false,
         verifyPeer: false,
         connectionTimeout: 500
     }
