@@ -1,4 +1,44 @@
 import ballerina/http;
+import ballerinax/redis;
+import ballerina/uuid;
+
+const string host = "<redis_container_host>";
+const string password = "<redis_password>";
+
+redis:ConnectionConfig redisConfig = {
+    host: host,
+    password: password,
+    options: {
+        connectionPooling: true,
+        isClusterConnection: false,
+        ssl: false,
+        startTls: false,
+        verifyPeer: false,
+        connectionTimeout: 500
+    }
+};
+
+final redis:Client conn = check new (redisConfig);
+
+//Health Check API - Configurations
+const string HEALTH_CHECK_API_VERSION = "1.0";
+
+//Health Check API - Application Names
+const string ASGARDEO_NAME = "Asagardeo Connectivity";
+const string REDIS_NAME = "Redis Service";
+
+//Health Check API - Redis Configurations
+const string REDIS_MONITORING_KEY = "healthCheckKey";
+
+enum Status {
+    PASS = "pass",
+    FAIL = "fail"
+}
+
+type HealthStatus record {
+    string name;
+    Status status;
+};
 
 service / on new http:Listener(9090) {
 
@@ -11,16 +51,13 @@ service / on new http:Listener(9090) {
         return "Hello, " + name;
     }
 
-    resource isolated function get healthCheck() returns json|error? {
+    resource isolated function get healthCheck(http:Caller caller) returns error? {
 
-        // Check API 01
-        APIStatus api01Status = api01();
-
-        // Check API 02
-        APIStatus api02Status = api02();
+        HealthStatus api01Status = api01HealthCheck();
+        HealthStatus redisStatus = redisHealthCheck();
 
         Status overallStatus;
-        if (api01Status.status == PASS && api02Status.status == PASS) {
+        if (api01Status.status == PASS && redisStatus.status == PASS) {
             overallStatus = PASS;
         } else {
             overallStatus = FAIL;
@@ -28,32 +65,30 @@ service / on new http:Listener(9090) {
 
         json healthCheckResponse = {
             "status": overallStatus,
-            "version": "1.0",
-            "description": "health of choro service",
+            "version": HEALTH_CHECK_API_VERSION,
+            "description": "Health Check API",
             "checks": [
                 api01Status.toJson(),
-                api02Status.toJson()
+                redisStatus.toJson()
             ]
         };
 
-        return healthCheckResponse;
+        http:Response quickResponse = new;
+        
+        if (overallStatus == PASS) {
+            quickResponse.statusCode = http:STATUS_OK;
+        } else {
+            quickResponse.statusCode = http:STATUS_SERVICE_UNAVAILABLE;
+        }
+        
+        quickResponse.setJsonPayload(healthCheckResponse);
+
+        check caller->respond(quickResponse);
     }
 }
 
-enum Status {
-    PASS = "pass", // HTTP response code in the 2xx-3xx range MUST be used.
-    FAIL = "fail", // HTTP response code in the 4xx-5xx range MUST be used.
-    WARN = "warn" // MUST return HTTP status in the 2xx-3xx range, and additional information SHOULD be provided in the response body.
-}
-
-// Use `open record` type to allow the record to be extended when needed.
-type APIStatus record {
-    string name;
-    Status status;
-};
-
-isolated function api01() returns APIStatus {
-    APIStatus api01Status = {
+isolated function api01HealthCheck() returns HealthStatus {
+    HealthStatus api01Status = {
         name: "API 01",
         status: PASS
     };
@@ -63,13 +98,44 @@ isolated function api01() returns APIStatus {
     return api01Status;
 }
 
-isolated function api02() returns APIStatus {
-    APIStatus api02Status = {
-        name: "API 02",
-        status: PASS
-    };
+isolated function redisHealthCheck() returns HealthStatus {
 
-    // Check API 02
+    HealthStatus healthStatus;
 
-    return api02Status;
+    string monitoringValue = uuid:createType1AsString();
+
+    string|error stringSetresult = conn->set(REDIS_MONITORING_KEY, monitoringValue);
+
+    if (stringSetresult is error) {
+        healthStatus = {
+            name: REDIS_NAME,
+            status: FAIL,
+            "error": "Error while setting a value to Redis"
+        };
+    } else {
+        string?|error stringGetresult = conn->get(REDIS_MONITORING_KEY);
+        if (stringGetresult is error) {
+            healthStatus = {
+                name: REDIS_NAME,
+                status: FAIL,
+                "error": "Error while getting a value from Redis"
+            };
+        } else {
+            if (stringGetresult != monitoringValue) {
+                healthStatus = {
+                    name: REDIS_NAME,
+                    status: FAIL,
+                    "error": "Invalid return value"
+                };
+            } else {
+                healthStatus = {
+                    name: REDIS_NAME,
+                    status: PASS
+                };
+            }
+        }
+    
+    }
+
+    return healthStatus;
 }
