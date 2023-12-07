@@ -1,0 +1,9 @@
+version: 0.1
+
+endpoints:
+  - name: Greeting Service
+    port: 9090
+      type: REST
+      networkVisibility: Public
+      context: /greeting
+        schemaFilePath: greeting_openapi.yaml
