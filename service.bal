@@ -2,24 +2,7 @@ import ballerina/http;
 import ballerinax/redis;
 import ballerina/uuid;
 import ballerina/io;
-
-configurable string REDIS_CONTAINER_HOST = ?;
-configurable string REDIS_PASSWORD = ?;
-
-redis:ConnectionConfig redisConfig = {
-    host: REDIS_CONTAINER_HOST,
-    password: REDIS_PASSWORD,
-    options: {
-        connectionPooling: true,
-        isClusterConnection: false,
-        ssl: true,
-        startTls: true,
-        verifyPeer: false,
-        connectionTimeout: 500
-    }
-};
-
-final redis:Client conn = check new (redisConfig);
+import ballerina/time;
 
 //Health Check API - Configurations
 const string HEALTH_CHECK_API_VERSION = "1.0";
@@ -41,14 +24,26 @@ type HealthStatus record {
     Status status;
 };
 
-service / on new http:Listener(9090) {
+listener http:Listener securedEP = new (9090
+    // ,
+    // secureSocket = {
+    //     key: {
+    //         certFile: "/home/binara/WSO2/Repositories/Binara-Sachin/choreo-test/resource/security/private.key",
+    //         keyFile: "/home/binara/WSO2/Repositories/Binara-Sachin/choreo-test/resource/security/public.cert"
+    //     }
+    // }
+);
+
+service / on securedEP {
 
     resource function get greeting(string name) returns string|error {
-
+        log("Greeting API Start", "greeting");
+        log("Received name: " + name, "greeting");
         if name is "" {
             return error("name should not be empty!");
         }
 
+        log("Greeting API End", "greeting");
         return "Hello, " + name;
     }
 
@@ -101,14 +96,45 @@ function api01HealthCheck() returns HealthStatus {
 
 function redisHealthCheck() returns HealthStatus {
 
-    HealthStatus healthStatus;
+    log("Redis Health Check Start", "redisHealthCheck");
 
+    HealthStatus healthStatus;
     string monitoringValue = uuid:createType1AsString();
+
+    log("Monitoring Value: " + monitoringValue, "redisHealthCheck");
+
+    // string REDIS_CONTAINER_HOST = "localhost:6379";
+    // string REDIS_PASSWORD = "redispw";
+
+    redis:ConnectionConfig redisConfig = {
+        host: "redis-e7b3c7f2-0f0e-47ac-abb5-d7c487c74797-redis2315394208-chor.a.aivencloud.com:21046",
+        password: "AVNS_G7zEL7vhGxUNxJ8K9ZF",
+        options: {
+            connectionPooling: true,
+            isClusterConnection: false,
+            ssl: false,
+            startTls: true,
+            verifyPeer: false,
+            connectionTimeout: 5000
+        }
+    };
+
+    final redis:Client|error conn = new (redisConfig);
+
+    if (conn is error) {
+        log("Error while connecting to Redis: " + conn.message(), "redisHealthCheck");
+        healthStatus = {
+            name: REDIS_NAME,
+            status: FAIL,
+            "error": "Error while connecting to Redis"
+        };
+        return healthStatus;
+    }
 
     string|error stringSetresult = conn->set(REDIS_MONITORING_KEY, monitoringValue);
 
     if (stringSetresult is error) {
-        io:println("Error while setting a value to Redis: " + stringSetresult.message());
+        log("Error while setting a value to Redis: " + stringSetresult.message(), "redisHealthCheck");
         healthStatus = {
             name: REDIS_NAME,
             status: FAIL,
@@ -117,6 +143,7 @@ function redisHealthCheck() returns HealthStatus {
     } else {
         string?|error stringGetresult = conn->get(REDIS_MONITORING_KEY);
         if (stringGetresult is error) {
+            log("Error while getting a value from Redis: " + stringGetresult.message(), "redisHealthCheck");
             healthStatus = {
                 name: REDIS_NAME,
                 status: FAIL,
@@ -124,12 +151,14 @@ function redisHealthCheck() returns HealthStatus {
             };
         } else {
             if (stringGetresult != monitoringValue) {
+                log("Invalid return value: " + stringGetresult.toString(), "redisHealthCheck");
                 healthStatus = {
                     name: REDIS_NAME,
                     status: FAIL,
                     "error": "Invalid return value"
                 };
             } else {
+                log("Redis Health Check End", "redisHealthCheck");
                 healthStatus = {
                     name: REDIS_NAME,
                     status: PASS
@@ -140,4 +169,10 @@ function redisHealthCheck() returns HealthStatus {
     }
 
     return healthStatus;
+}
+
+function log(string message, string functionName) {
+    time:Utc utc1 = time:utcNow();
+    string utcString = time:utcToString(utc1);
+    io:println("[" + utcString + "] " + "[" + functionName + "] " + message);
 }
