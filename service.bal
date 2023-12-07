@@ -107,13 +107,13 @@ function redisHealthCheck() returns HealthStatus {
     // string REDIS_PASSWORD = "redispw";
 
     redis:ConnectionConfig redisConfig = {
-        host: "redis-e7b3c7f2-0f0e-47ac-abb5-d7c487c74797-redis2315394208-chor.a.aivencloud.com:21046",
-        password: "AVNS_G7zEL7vhGxUNxJ8K9ZF",
+        host: "redis-12921.c267.us-east-1-4.ec2.cloud.redislabs.com:12921",
+        password: "rqv1ImoLpSnhYFmOqklRucSs3VMqxllg",
         options: {
             connectionPooling: true,
             isClusterConnection: false,
             ssl: false,
-            startTls: true,
+            startTls: false,
             verifyPeer: false,
             connectionTimeout: 5000
         }
