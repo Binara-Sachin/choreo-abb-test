@@ -24,18 +24,7 @@ type HealthStatus record {
     Status status;
 };
 
-listener http:Listener securedEP = new (9090
-    // ,
-    // secureSocket = {
-    //     key: {
-    //         certFile: "/home/binara/WSO2/Repositories/Binara-Sachin/choreo-test/resource/security/private.key",
-    //         keyFile: "/home/binara/WSO2/Repositories/Binara-Sachin/choreo-test/resource/security/public.cert"
-    //     }
-    // }
-);
-
-service / on securedEP {
-
+service / on new http:Listener(9090) {
     resource function get greeting(string name) returns string|error {
         log("Greeting API Start", "greeting");
         log("Received name: " + name, "greeting");
