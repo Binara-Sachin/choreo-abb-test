@@ -92,19 +92,19 @@ function redisHealthCheck() returns HealthStatus {
 
     log("Monitoring Value: " + monitoringValue, "redisHealthCheck");
 
-    // string REDIS_CONTAINER_HOST = "localhost:6379";
+    // string REDIS_CONTAINER_HOST = "localhost:6379/";
     // string REDIS_PASSWORD = "redispw";
 
     redis:ConnectionConfig redisConfig = {
-        host: "redis-12921.c267.us-east-1-4.ec2.cloud.redislabs.com:12921",
-        password: "rqv1ImoLpSnhYFmOqklRucSs3VMqxllg",
+        host: "redis-e7b3c7f2-0f0e-47ac-abb5-d7c487c74797-choreor941983303-cho.a.aivencloud.com:21046",
+        password: "AVNS_DjFJA0emkN7liobZ_Gz",
         options: {
             connectionPooling: true,
             isClusterConnection: false,
-            ssl: false,
+            ssl: true,
             startTls: false,
             verifyPeer: false,
-            connectionTimeout: 5000
+            connectionTimeout: 500
         }
     };
 
